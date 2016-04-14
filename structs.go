@@ -14,3 +14,10 @@ type IPEntry struct {
 	Port              string
 	IPAddressSitename string
 }
+
+type request struct {
+	IPAddress string
+	Port      string
+	Command   string
+	Prompt    string
+}

@@ -13,13 +13,6 @@ import (
 	"github.com/ziutek/telnet"
 )
 
-type request struct {
-	IPAddress string
-	Port      string
-	Command   string
-	Prompt    string
-}
-
 func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
 
