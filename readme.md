@@ -2,7 +2,12 @@
 
 The service is meant to facilitate telnet connections and commands by proxy. Specifically designed for communication with Crestron systems.
 
-The only active endpoint is `POST:/sendCommand` with a JSON payload in the form of
+Active endpoints are
+
+* `POST:/sendCommand`
+* `POST:/sendCommandConfirm`
+
+both with a JSON payload in the form of
 ```
 {
 	"IPAddress":	"IPAddress of target",
@@ -14,6 +19,14 @@ The only active endpoint is `POST:/sendCommand` with a JSON payload in the form 
 
 If the `Command` field contains a recognized command, the service will parse and return a JSON response with the parsed results. Otherwise it will return the raw
 response.
+
+## sendCommand
+
+Send command is used to send a generic command and return the response. Any telnet command can be sent and the response will be sent back. If the command is one of the recognized commands the output will be parsed and sent back in a json payload, otherwise a raw response will be sent.
+
+## sendCommandConfirm
+
+Send Command with confirm is meant for commands that require a confirmation after command execution. (`initialize` for instance) This endpoint will execute the command, wait for 1 second, and then send the 'y' character. Response is not recorded, just a `Success!` if no error was received.  
 
 ## Recognized commands
 
