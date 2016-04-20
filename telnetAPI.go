@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
@@ -47,17 +48,13 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	value, err := conn.Write([]byte(req.Command + "\nhostname")) // Send two commands so we get a second prompt to use as a delimiter
-	//value, err = conn.Write([]byte("hostname"))
-
-	fmt.Printf("%v\n", value)
+	_, err = conn.Write([]byte(req.Command + "\nhostname")) // Send two commands so we get a second prompt to use as a delimiter
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
 		return
 	}
-
 	err = conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
 
 	if err != nil {
@@ -67,11 +64,10 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
-	//esponse2, err := conn.ReadUntil(req.Prompt)
 
 	conn.Close()
 
-	response = response[:len(response)-10] // Ghetto trim the prompt off the response
+	response = response[:len(response)-len(req.Prompt)] // Ghetto trim the prompt off the response
 
 	switch req.Command {
 	case "iptable":
@@ -86,13 +82,67 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		bits, err := json.Marshal(ipTable)
 		fmt.Fprintf(w, "%s", bits)
 		return
-
 	default:
 		fmt.Fprintf(w, "%s", string(response))
 		return
 
 	}
 
+}
+
+func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
+	bits, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Could not read request body: %s\n", err.Error())
+		return
+	}
+
+	var req request
+	err = json.Unmarshal(bits, &req)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error with the request body: %s", err.Error())
+		return
+	}
+
+	if len(req.Port) < 1 {
+		req.Port = "41795"
+	}
+	err = sendCommandWithConfirm(req.Command, req.IPAddress, req.Port)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error: %s", err.Error())
+		return
+	}
+
+	fmt.Fprintf(w, "Success!")
+}
+
+func sendCommandWithConfirm(command string, ipAddress string, port string) error {
+	var conn *telnet.Conn
+
+	conn, err := telnet.Dial("tcp", ipAddress+":"+port)
+	if err != nil {
+		return err
+	}
+
+	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
+
+	_, err = conn.Write([]byte(command + "\n"))
+
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(1000 * time.Millisecond) //Wait for the prompt to appear
+
+	conn.Write([]byte("y")) //send the yes confirmation
+
+	return nil
 }
 
 func getIPTable(response string) (IPTable, error) {
@@ -138,5 +188,7 @@ func getIPTable(response string) (IPTable, error) {
 func main() {
 	goji.Post("/sendCommand", sendCommand)
 	goji.Post("/sendCommand/", sendCommand)
+	goji.Post("/sendCommandConfirm", sendCommandConfirm)
+	goji.Post("/sendCommandConfirm/", sendCommandConfirm)
 	goji.Serve()
 }
