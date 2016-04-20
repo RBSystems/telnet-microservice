@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/zenazn/goji"
 	"github.com/zenazn/goji/web"
@@ -47,9 +48,16 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	value, err := conn.Write([]byte(req.Command + "\nhostname")) // Send two commands so we get a second prompt to use as a delimiter
-	//value, err = conn.Write([]byte("hostname"))
+	value, err := conn.Write([]byte(req.Command + "\n")) // Send two commands so we get a second prompt to use as a delimiter
 
+	time.Sleep(1000 * time.Millisecond)
+
+	conn.Write([]byte("y"))
+	fmt.Printf("%v\n", value)
+
+	fmt.Printf("\n")
+	//value, err = conn.Write([]byte("hostname"))
+	//conn.
 	fmt.Printf("%v\n", value)
 
 	if err != nil {
@@ -57,8 +65,7 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
 		return
 	}
-
-	err = conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
+	//err = conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
