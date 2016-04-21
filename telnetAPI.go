@@ -48,7 +48,7 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = conn.Write([]byte(req.Command + "\nhostname")) // Send two commands so we get a second prompt to use as a delimiter
+	_, err = conn.Write([]byte(req.Command + "\n\n")) // Send a second newline so we get the prompt
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
