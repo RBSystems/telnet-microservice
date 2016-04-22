@@ -41,7 +41,7 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
-	conn.SetReadDeadline(45 * time.Second)
+	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
