@@ -13,9 +13,11 @@ both with a JSON payload in the form of
 	"IPAddress":	"IPAddress of target",
 	"Port": 		"Optional parameter of port to connect. Defaults to 41795"
 	"Command":  	"The command to send the target"
-	"Prompt": 	  "The string to use as a delimiter when parsing the response."
+	"Prompt": 	  "Optional string to use as a delimiter when parsing the response."
 }
 ```
+
+If the `Prompt` field is not included the service will attempt to determine the prompt. If unsuccessful will return an error. 
 
 If the `Command` field contains a recognized command, the service will parse and return a JSON response with the parsed results. Otherwise it will return the raw
 response.

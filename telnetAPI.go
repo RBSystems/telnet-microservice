@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -13,6 +14,30 @@ import (
 	"github.com/zenazn/goji/web"
 	"github.com/ziutek/telnet"
 )
+
+func getPrompt(req request, conn *telnet.Conn) (string, error) {
+
+	_, err := conn.Write([]byte("\n\n"))
+
+	if err != nil {
+		return "", err
+	}
+
+	//Dynamically get the prompt
+	conn.SkipUntil(">")
+	promptBytes, err := conn.ReadUntil(">")
+
+	if err != nil {
+		return "", err
+	}
+	regex := "\\S.*?>"
+
+	re := regexp.MustCompile(regex)
+
+	prompt := string(re.Find(promptBytes))
+
+	return prompt, nil
+}
 
 func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
@@ -40,14 +65,28 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		conn, err = telnet.Dial("tcp", req.IPAddress+":"+req.Port)
 	}
 
-	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
-	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
-
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
 		return
 	}
+
+	defer conn.Close()
+	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
+
+	if req.Prompt == "" {
+		p, err := getPrompt(req, conn)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+			return
+		}
+
+		req.Prompt = p
+	}
+
+	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
 
 	_, err = conn.Write([]byte(req.Command + "\n\n")) // Send a second newline so we get the prompt
 
@@ -66,7 +105,11 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	response, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
 
-	conn.Close()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error: %s", err.Error())
+		return
+	}
 
 	response = response[:len(response)-len(req.Prompt)] // Ghetto trim the prompt off the response
 
