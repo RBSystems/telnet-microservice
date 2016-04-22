@@ -112,6 +112,7 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	response = response[:len(response)-len(req.Prompt)] // Ghetto trim the prompt off the response
+	response = response[len(req.Command):]
 
 	switch req.Command {
 	case "iptable":
@@ -127,7 +128,7 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", bits)
 		return
 	default:
-		fmt.Fprintf(w, "%s", string(response))
+		fmt.Fprintf(w, "%s", strings.TrimSpace(string(response)))
 		return
 
 	}
