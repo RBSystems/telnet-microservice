@@ -135,6 +135,61 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 
 }
 
+func getPromptHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	bits, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Could not read request body: %s\n", err.Error())
+		return
+	}
+
+	var req request
+	err = json.Unmarshal(bits, &req)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error with the request body: %s", err.Error())
+		return
+	}
+
+	if len(req.Port) < 1 {
+		req.Port = "41795"
+	}
+
+	var conn *telnet.Conn
+
+	if req.Port == "" {
+		conn, err = telnet.Dial("tcp", req.IPAddress+":41795")
+	} else {
+		conn, err = telnet.Dial("tcp", req.IPAddress+":"+req.Port)
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+		return
+	}
+
+	defer conn.Close()
+	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
+
+	p, err := getPrompt(req, conn)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+		return
+	}
+
+	req.Prompt = p
+
+	b, _ := json.Marshal(req)
+
+	w.Header().Add("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s", string(b))
+}
+
 func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
 
@@ -235,5 +290,7 @@ func main() {
 	goji.Post("/sendCommand/", sendCommand)
 	goji.Post("/sendCommandConfirm", sendCommandConfirm)
 	goji.Post("/sendCommandConfirm/", sendCommandConfirm)
+	goji.Post("/sendCommand/getPrompt/", getPromptHandler)
+	goji.Post("/sendCommand/getPrompt", getPromptHandler)
 	goji.Serve()
 }
