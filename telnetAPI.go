@@ -74,6 +74,23 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	defer conn.Close()
 	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
 
+	//Cheap cop-out way to deal with getting the version of the touchpanels. Split out xmodem into own endpoint?
+	//TODO: Figure out a better way to handle this.
+	if strings.EqualFold(req.Command, "xget ~.LocalInfo.vtpage") {
+		resp, err := getProjectInfo(req, conn)
+
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+			return
+		}
+
+		fmt.Fprintf(w, "%s", strings.TrimSpace(string(resp)))
+		return
+	}
+
+	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
+
 	if req.Prompt == "" {
 		p, err := getPrompt(req, conn)
 
@@ -85,8 +102,6 @@ func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 
 		req.Prompt = p
 	}
-
-	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
 
 	_, err = conn.Write([]byte(req.Command + "\n\n")) // Send a second newline so we get the prompt
 
@@ -190,6 +205,58 @@ func getPromptHandler(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", string(b))
 }
 
+func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
+	fmt.Printf("%s Getting project info...\n", req.IPAddress)
+
+	defer conn.Close()
+
+	if req.Prompt == "" {
+		prompt, _ := getPrompt(req, conn)
+		req.Prompt = prompt
+	}
+	conn.Write([]byte("udir \\romdisk\\user\\display\\\n\n"))
+	conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
+
+	resp1, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("%s %s\n", req.IPAddress, resp1)
+
+	if !strings.Contains(string(resp1), ".vtpage") {
+		return "File ~.LocalInfo.vtpage does not exist.\n", nil
+	}
+
+	conn.Write([]byte("cd \\romdisk\\user\\display\\\n"))
+	conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
+
+	resp, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("%s\n", resp)
+	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
+	conn.Write([]byte(req.Command + "\n\n"))
+
+	conn.SkipUntil("[BEGIN_INFO]", "ERROR")
+	fmt.Printf("%s skipped\n", req.IPAddress)
+	resp, err = conn.ReadUntil("[END_INFO]", "Panel", "not")
+
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Printf("%s Response: %s\n", req.IPAddress, string(resp))
+
+	conn.Close() //actively close the xmodem connection.
+
+	return string(resp), nil
+}
+
 func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
 
@@ -248,20 +315,28 @@ func sendCommandWithConfirm(command string, ipAddress string, port string) error
 func getIPTable(response string) (IPTable, error) {
 	// Parse the response to build the IP Table.
 
+	if strings.Contains(response, "IP Table:") { //remove the first pieces so all we have
+		//is the actual table.
+		response = strings.Split(response, "IP Table:")[1]
+	}
+	response = strings.TrimSpace(response)
+
 	lines := strings.Split(response, "\n") //get each line. The first is the header, each subsequent line is an entry in the table
 
-	fmt.Printf("ResponseString: %s\n", response)
+	fmt.Printf("ResponseString:\n %s\n", response)
 
-	fmt.Printf("\nLines: %v\n Length: %v\n", lines, len(lines))
+	fmt.Printf("Length: %v\n", len(lines))
 
 	var toReturn IPTable
 
-	for i := 1; i < len(lines); i++ {
+	for i := 1; i < len(lines); i++ { //start at one so we skip the headers.
 		entries := strings.Fields(lines[i]) //psplit on whitespace
+
+		fmt.Printf("Fields: %+v\n", entries)
 
 		var toAdd IPEntry
 
-		if len(entries) == 0 {
+		if len(entries) == 0 { //skip empty lines
 			continue
 		}
 
@@ -274,8 +349,11 @@ func getIPTable(response string) (IPTable, error) {
 			toAdd = IPEntry{CipID: entries[0], Type: entries[1], Status: entries[2], Port: entries[3], IPAddressSitename: entries[4]}
 		case 6: //There are 6 entries, DevID is there.
 			toAdd = IPEntry{CipID: entries[0], Type: entries[1], Status: entries[2], DevID: entries[3], Port: entries[4], IPAddressSitename: entries[5]}
-		default: //We don't recognize this IPtable
-			return IPTable{}, errors.New("Unrecognized IP Table returned.\n")
+		default: //We don't recognize this IPtable. If we already have entries, just skip it, otherwise throw a fit.
+			if len(toReturn.Entries) == 0 {
+				return IPTable{}, errors.New("Unrecognized IP Table returned.\n")
+			}
+			continue
 		}
 
 		toReturn.Entries = append(toReturn.Entries, toAdd)
