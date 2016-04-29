@@ -16,7 +16,6 @@ import (
 )
 
 func getPrompt(req request, conn *telnet.Conn) (string, error) {
-
 	_, err := conn.Write([]byte("\n\n"))
 
 	if err != nil {
@@ -218,7 +217,6 @@ func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
 	conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
 
 	resp1, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
-
 	if err != nil {
 		return "", err
 	}
@@ -233,7 +231,6 @@ func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
 	conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
 
 	resp, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
-
 	if err != nil {
 		return "", err
 	}
@@ -245,21 +242,19 @@ func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
 	conn.SkipUntil("[BEGIN_INFO]", "ERROR")
 	fmt.Printf("%s skipped\n", req.IPAddress)
 	resp, err = conn.ReadUntil("[END_INFO]", "Panel", "not")
-
 	if err != nil {
 		return "", err
 	}
 
 	fmt.Printf("%s Response: %s\n", req.IPAddress, string(resp))
 
-	conn.Close() //actively close the xmodem connection.
+	conn.Close() // Actively close the xmodem connection
 
 	return string(resp), nil
 }
 
 func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Could not read request body: %s\n", err.Error())
@@ -267,8 +262,8 @@ func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req request
-	err = json.Unmarshal(bits, &req)
 
+	err = json.Unmarshal(bits, &req)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Error with the request body: %s", err.Error())
@@ -278,8 +273,8 @@ func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	if len(req.Port) < 1 {
 		req.Port = "41795"
 	}
-	err = sendCommandWithConfirm(req.Command, req.IPAddress, req.Port)
 
+	err = sendCommandWithConfirm(req.Command, req.IPAddress, req.Port)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(w, "Error: %s", err.Error())
@@ -289,6 +284,7 @@ func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Success!")
 }
 
+// Answer "y" if a command asks for confirmation
 func sendCommandWithConfirm(command string, ipAddress string, port string) error {
 	var conn *telnet.Conn
 
@@ -305,9 +301,9 @@ func sendCommandWithConfirm(command string, ipAddress string, port string) error
 		return err
 	}
 
-	time.Sleep(1000 * time.Millisecond) //Wait for the prompt to appear
+	time.Sleep(1000 * time.Millisecond) // Wait for the prompt to appear
 
-	conn.Write([]byte("y")) //send the yes confirmation
+	conn.Write([]byte("y")) // Send the yes confirmation
 
 	return nil
 }
