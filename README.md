@@ -10,7 +10,7 @@ Active endpoints are
 both with a JSON payload in the form of
 ```
 {
-	"IPAddress":	"IPAddress of target",
+	"Address":	"Address of target",
 	"Port": 		"Optional parameter of port to connect. Defaults to 41795"
 	"Command":  	"The command to send the target"
 	"Prompt": 	  "Optional string to use as a delimiter when parsing the response."
@@ -43,7 +43,7 @@ This is a list of the currently recognized commands with the JSON response that 
 			"Status": "string",
 			"DevID": "string",
 			"Port": "string",
-			"IPAddressSitename": "string"
+			"AddressSitename": "string"
 		}
 	]}
 ```

@@ -39,9 +39,9 @@ func GetIPTable(response string) (IPTable, error) {
 		switch len(entries) {
 		case 5: //There are 5 entries, assume DevID isn't there.
 			fmt.Printf("Adding Entry: %v\n", entries)
-			toAdd = IPTableEntry{CipID: entries[0], Type: entries[1], Status: entries[2], Port: entries[3], IPAddressSitename: entries[4]}
+			toAdd = IPTableEntry{CipID: entries[0], Type: entries[1], Status: entries[2], Port: entries[3], AddressSitename: entries[4]}
 		case 6: //There are 6 entries, DevID is there.
-			toAdd = IPTableEntry{CipID: entries[0], Type: entries[1], Status: entries[2], DevID: entries[3], Port: entries[4], IPAddressSitename: entries[5]}
+			toAdd = IPTableEntry{CipID: entries[0], Type: entries[1], Status: entries[2], DevID: entries[3], Port: entries[4], AddressSitename: entries[5]}
 		default: //We don't recognize this IPtable. If we already have entries, just skip it, otherwise throw a fit.
 			if len(toReturn.Entries) == 0 {
 				return IPTable{}, errors.New("Unrecognized IP Table returned.\n")
