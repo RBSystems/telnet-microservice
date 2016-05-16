@@ -1,9 +1,9 @@
 package helpers
 
 import (
-	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo"
 	"github.com/ziutek/telnet"
@@ -12,53 +12,84 @@ import (
 func SendCommand(c echo.Context) (error, error) {
 	var connection *telnet.Conn
 
-	req := Request{}
-	c.Bind(&req)
+	request := Request{}
+	c.Bind(&request)
 
-	req, err := CheckRequest(req)
+	request, err := CheckRequest(request)
 	if err != nil {
-		return nil, err
+		return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
 	}
 
-	connection, err = telnet.Dial("tcp", req.Address+":"+req.Port)
+	connection, err = telnet.Dial("tcp", request.Address+":"+request.Port)
 	if err != nil {
-		return nil, errors.New("Error contacting host: " + err.Error())
+		return nil, c.JSON(http.StatusBadRequest, "Error contacting host: "+err.Error())
 	}
 
 	defer connection.Close()
 	connection.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
 
-	_, err = connection.Write([]byte(req.Command + "\n"))
+	_, err = connection.Write([]byte(request.Command + "\n"))
 	if err != nil {
-		return nil, err
+		return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
 	}
 
-	switch req.Command {
-	case "xget ~.LocalInfo.vtpage":
-		resp, err := GetProjectInfo(req, connection)
+	connection.SkipUntil(request.Prompt)
+	output, err := connection.ReadUntil(request.Prompt)
+	if err != nil {
+		return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
+	}
+
+	output = output[:len(output)-len(request.Prompt)] // Trim the prompt off the output
+
+	switch request.Command {
+	case "xget ~.LocalInfo.vtpage": // Used in the Touchpanel Update Runner to check if a touchpanel needs to have its firmware updated
+		response, err := GetProjectInfo(request, connection)
 		if err != nil {
-			return nil, errors.New("Error contacting host: " + err.Error())
+			return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
 		}
 
-		return c.JSON(http.StatusOK, strings.TrimSpace(string(resp))), nil
+		return c.JSON(http.StatusOK, response), nil
 	case "iptable":
-		ipTable, err := GetIPTable(req.Prompt)
+		iptable, err := GetIPTable(output)
 		if err != nil {
-			return nil, errors.New("Error: " + err.Error())
+			return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
 		}
 
-		return c.JSON(http.StatusOK, ipTable), nil
+		return c.JSON(http.StatusOK, iptable), nil
 	default:
-		connection.SkipUntil(req.Prompt)
-		output, err := connection.ReadUntil(req.Prompt)
-		if err != nil {
-			return nil, err
-		}
-
-		output = output[:len(output)-len(req.Prompt)]               // Trim the prompt off the output
 		response := strings.Replace(string(output), "\r\n", "", -1) // Remove line returns that are added automatically
-		response = strings.Trim(response, " ")                      // Kill any trailing spaces
+		response = strings.TrimSpace(response)                      // Kill any leading or trailing spaces
 
 		return c.JSON(http.StatusOK, response), nil
 	}
+}
+
+func SendCommandWithConfirm(c echo.Context) (error, error) {
+	var connection *telnet.Conn
+
+	request := Request{}
+	c.Bind(&request)
+
+	request, err := CheckRequest(request)
+	if err != nil {
+		return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
+	}
+
+	connection, err = telnet.Dial("tcp", request.Address+":"+request.Port)
+	if err != nil {
+		return nil, c.JSON(http.StatusInternalServerError, "Error: "+err.Error())
+	}
+
+	connection.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
+
+	_, err = connection.Write([]byte(request.Command + "\n"))
+	if err != nil {
+		return nil, c.JSON(http.StatusInternalServerError, "Error: "+err.Error())
+	}
+
+	time.Sleep(1000 * time.Millisecond) // Wait for the prompt to appear
+
+	connection.Write([]byte("y")) // Send the confirmation
+
+	return c.JSON(http.StatusOK, "Success"), nil
 }

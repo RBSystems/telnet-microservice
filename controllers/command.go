@@ -13,3 +13,12 @@ func Command(c echo.Context) error {
 
 	return response
 }
+
+func CommandWithConfirm(c echo.Context) error {
+	response, err := helpers.SendCommandWithConfirm(c)
+	if err != nil {
+		return err
+	}
+
+	return response
+}
