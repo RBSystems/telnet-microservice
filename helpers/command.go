@@ -42,13 +42,8 @@ func SendCommand(c echo.Context) (error, error) {
 	output = output[:len(output)-len(request.Prompt)] // Trim the prompt off the output
 
 	switch request.Command {
-	case "xget ~.LocalInfo.vtpage": // Used in the Touchpanel Update Runner to check if a touchpanel needs to have its firmware updated
-		response, err := GetProjectInfo(request, connection)
-		if err != nil {
-			return nil, c.JSON(http.StatusBadRequest, "Error: "+err.Error())
-		}
-
-		return c.JSON(http.StatusOK, response), nil
+	case "xget ~.LocalInfo.vtpage":
+		return c.JSON(http.StatusOK, "Use the /project endpoint for this command"), nil
 	case "iptable":
 		iptable, err := GetIPTable(output)
 		if err != nil {

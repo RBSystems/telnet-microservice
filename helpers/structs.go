@@ -22,3 +22,8 @@ type Request struct {
 	Command string `json:"command"`
 	Prompt  string `json:"prompt"`
 }
+
+// Project represents loaded project information for a touchpanel
+type Project struct {
+	Date string `json:"date"`
+}

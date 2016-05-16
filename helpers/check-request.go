@@ -8,7 +8,7 @@ func CheckRequest(request Request) (Request, error) {
 	}
 
 	if len(request.Port) < 1 {
-		request.Port = "23"
+		request.Port = "41795" // Creston uses this port instead of :23 for some reason
 	}
 
 	if request.Prompt == "" {

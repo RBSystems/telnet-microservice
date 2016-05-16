@@ -18,6 +18,7 @@ func main() {
 	e.Get("/health", health.Check)
 
 	e.Get("/prompt/:address", controllers.GetPrompt)
+	e.Get("/project/:address", controllers.GetProjectInfo)
 
 	e.Post("/command", controllers.Command)
 	e.Post("/command/confirm", controllers.CommandWithConfirm)
