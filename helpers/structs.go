@@ -1,23 +1,29 @@
 package helpers
 
-//IPTable represents an IPTable returend from a crestron device
+// IPTable represents an IPTable returend from a crestron device
 type IPTable struct {
-	Entries []IPTableEntry
+	Entries []IPTableEntry `json:"entries"`
 }
 
-//IPTableEntry represents a single entry in the IPTable
+// IPTableEntry represents a single entry in the IPTable
 type IPTableEntry struct {
-	CipID             string `json:"CIP_ID"`
-	Type              string
-	Status            string
-	DevID             string
-	Port              string
-	IPAddressSitename string
+	CipID   string `json:"cipID"`
+	Type    string `json:"type"`
+	Status  string `json:"status"`
+	DevID   string `json:"devID"`
+	Port    string `json:"port"`
+	Address string `json:"address"`
 }
 
+// Request represents the body that's POSTed to the service
 type Request struct {
-	IPAddress string
-	Port      string
-	Command   string
-	Prompt    string
+	Address string `json:"address"`
+	Port    string `json:"port"`
+	Command string `json:"command"`
+	Prompt  string `json:"prompt"`
+}
+
+// Project represents loaded project information for a touchpanel
+type Project struct {
+	Date string `json:"date"`
 }

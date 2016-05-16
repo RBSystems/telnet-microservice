@@ -7,11 +7,11 @@ import (
 	"github.com/labstack/echo"
 )
 
-func GetPrompt(c echo.Context) error {
-	prompt, err := helpers.GetPrompt(c.Param("address"))
+func GetProjectInfo(c echo.Context) error {
+	output, err := helpers.GetProjectInfo(c)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, prompt)
+	return c.JSON(http.StatusOK, output)
 }
