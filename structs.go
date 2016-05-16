@@ -1,12 +1,12 @@
-package helpers
+package main
 
 //IPTable represents an IPTable returend from a crestron device
 type IPTable struct {
-	Entries []IPTableEntry
+	Entries []IPEntry
 }
 
-//IPTableEntry represents a single entry in the IPTable
-type IPTableEntry struct {
+//IPEntry represents a single entry in the IPTable
+type IPEntry struct {
 	CipID             string `json:"CIP_ID"`
 	Type              string
 	Status            string
@@ -15,7 +15,7 @@ type IPTableEntry struct {
 	IPAddressSitename string
 }
 
-type Request struct {
+type request struct {
 	IPAddress string
 	Port      string
 	Command   string

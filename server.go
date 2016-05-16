@@ -6,17 +6,39 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
-	"github.com/jessemillar/health"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/fasthttp"
-	"github.com/labstack/echo/middleware"
+	"github.com/zenazn/goji"
+	"github.com/zenazn/goji/web"
 	"github.com/ziutek/telnet"
 )
 
-func sendCommand(c echo.Context) error {
+func getPrompt(req request, conn *telnet.Conn) (string, error) {
+	_, err := conn.Write([]byte("\n\n"))
+
+	if err != nil {
+		return "", err
+	}
+
+	//Dynamically get the prompt
+	conn.SkipUntil(">")
+	promptBytes, err := conn.ReadUntil(">")
+
+	if err != nil {
+		return "", err
+	}
+	regex := "\\S.*?>"
+
+	re := regexp.MustCompile(regex)
+
+	prompt := string(re.Find(promptBytes))
+
+	return prompt, nil
+}
+
+func sendCommand(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -127,6 +149,61 @@ func sendCommand(c echo.Context) error {
 
 }
 
+func getPromptHandler(c web.C, w http.ResponseWriter, r *http.Request) {
+	bits, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Could not read request body: %s\n", err.Error())
+		return
+	}
+
+	var req request
+	err = json.Unmarshal(bits, &req)
+
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintf(w, "Error with the request body: %s", err.Error())
+		return
+	}
+
+	if len(req.Port) < 1 {
+		req.Port = "41795"
+	}
+
+	var conn *telnet.Conn
+
+	if req.Port == "" {
+		conn, err = telnet.Dial("tcp", req.IPAddress+":41795")
+	} else {
+		conn, err = telnet.Dial("tcp", req.IPAddress+":"+req.Port)
+	}
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+		return
+	}
+
+	defer conn.Close()
+	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
+
+	p, err := getPrompt(req, conn)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
+		return
+	}
+
+	req.Prompt = p
+
+	b, _ := json.Marshal(req)
+
+	w.Header().Add("Content-Type", "application/json")
+	fmt.Fprintf(w, "%s", string(b))
+}
+
 func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
 	fmt.Printf("%s Getting project info...\n", req.IPAddress)
 
@@ -176,7 +253,7 @@ func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
 	return string(resp), nil
 }
 
-func sendCommandConfirm(c echo.Context) error {
+func sendCommandConfirm(c web.C, w http.ResponseWriter, r *http.Request) {
 	bits, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -283,16 +360,11 @@ func getIPTable(response string) (IPTable, error) {
 }
 
 func main() {
-	port := ":8001"
-	e := echo.New()
-	e.Pre(middleware.RemoveTrailingSlash())
-
-	e.Get("/health", health.Check)
-
-	e.Post("/sendCommand", sendCommand)
-	e.Post("/sendCommandConfirm", sendCommandConfirm)
-	e.Post("/sendCommand/getPrompt", getPromptHandler)
-
-	fmt.Printf("The Telnet Microservice is listening on %s\n", port)
-	e.Run(fasthttp.New(port))
+	goji.Post("/sendCommand", sendCommand)
+	goji.Post("/sendCommand/", sendCommand)
+	goji.Post("/sendCommandConfirm", sendCommandConfirm)
+	goji.Post("/sendCommandConfirm/", sendCommandConfirm)
+	goji.Post("/sendCommand/getPrompt/", getPromptHandler)
+	goji.Post("/sendCommand/getPrompt", getPromptHandler)
+	goji.Serve()
 }
