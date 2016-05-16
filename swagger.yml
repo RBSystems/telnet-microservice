@@ -1,0 +1,157 @@
+swagger: "2.0"
+info:
+  title: Crestron Telnet Microservice
+  description: Communicate over telnet to Crestron boxes
+  version: "0.1"
+# host: api.byu.edu
+host: avmetrics1.byu.edu:8001
+schemes:
+  - http
+# basePath: "/v0.1"
+produces:
+  - application/json
+paths:
+  /health:
+    get:
+      summary: Check Service Health
+      description: |
+        Returns information about the microservice's health.
+      tags:
+        - Health
+      responses:
+        200:
+          description: A health message
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /send:
+    get:
+      summary: Use Microservice
+      description: |
+        Returns information about the /send enpoint.
+      tags:
+        - FTP
+      responses:
+        200:
+          description: Endpoint information
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+    post:
+      summary: Send a File
+      description: |
+        Send a file through the FTP microservice.
+      parameters:
+        - name: body
+          description: Information about the file to be sent over FTP
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/file-request"
+      tags:
+        - FTP
+      responses:
+        201:
+          description: All went well
+          schema:
+            $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+definitions:
+  HATEOAS:
+    type: object
+    properties:
+      rel:
+        type: string
+        description: A human-readable name for what the link represents
+      href:
+        type: string
+        description: The link to the endpoint
+  response:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      message:
+        type: string
+        description: A human-readable message about what just happened
+  file-request:
+    type: object
+    required:
+      - "FileLocation"
+      - "DestinationAddress"
+      - "DestinationDirectory"
+      - "CallbackAddress"
+    properties:
+      FileLocation:
+        type: string
+        description: The location of the file to be transferred
+      DestinationAddress:
+        type: string
+        description: The address of the machine on the receiving end of the FTP connection
+      DestinationDirectory:
+        type: string
+        description: The directory on the receiving device, relative to root, where we will store the transferred file
+      CallbackAddress:
+        type: string
+        description: The address to POST to upon FTP completion
+      CallbackIdentifier:
+        type: string
+        description: A value passed to the callback address to identify the process that was completed
+      UsernameFTP:
+        type: string
+        description: The username to use when initiating FTP (defaults to "anonymous")
+      PasswordFTP:
+        type: string
+        description: The password to use when initiating FTP (defaults to "anonymous")
+      Timeout:
+        type: integer
+        description: The amount of time, in seconds, to wait for the destination device to respond to a request to open an FTP connection (defaults to 30)
+  error:
+    type: object
+    properties:
+      message:
+        type: string
+responses:
+  401:
+    description: You are not authorized to make that request
+    schema:
+      $ref: "#/definitions/error"
+  500:
+    description: There was a problem with the server on our end
+    schema:
+      $ref: "#/definitions/error"
+  503:
+    description: The server is overloaded, is under maintenance, or is otherwise unavailable
+    schema:
+      $ref: "#/definitions/error"
+  default:
+    description: Unexpected error
+    schema:
+      $ref: "#/definitions/error"
