@@ -2,13 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/byuoitav/ftp-microservice/helpers"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
@@ -17,53 +17,33 @@ import (
 )
 
 func sendCommand(c echo.Context) error {
-	bits, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Could not read request body: %s\n", err.Error())
-		return
-	}
-
-	var req request
-	err = json.Unmarshal(bits, &req)
-
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Error with the request body: %s", err.Error())
-		return
-	}
+	req := helpers.Request{}
+	c.Bind(&req)
 
 	var conn *telnet.Conn
 
 	if req.Port == "" {
-		conn, err = telnet.Dial("tcp", req.IPAddress+":41795")
-	} else {
-		conn, err = telnet.Dial("tcp", req.IPAddress+":"+req.Port)
+		req.Port = ":23"
 	}
 
+	conn, err := telnet.Dial("tcp", req.IPAddress+":"+req.Port)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(w, "Error with contacting host %s", err.Error())
-		return
+		return c.JSON(http.StatusInternalServerError, "Error with contacting host: "+err.Error())
 	}
 
 	defer conn.Close()
-	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF) This is apparently very important
+	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
 
-	//Cheap cop-out way to deal with getting the version of the touchpanels. Split out xmodem into own endpoint?
-	//TODO: Figure out a better way to handle this.
+	// Cheap cop-out way to deal with getting the version of the touchpanels. Split out xmodem into own endpoint?
+	// TODO: Figure out a better way to handle this
 	if strings.EqualFold(req.Command, "xget ~.LocalInfo.vtpage") {
 		resp, err := getProjectInfo(req, conn)
 
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "Error with contacting host %s", err.Error())
-			return
+			return c.JSON(http.StatusInternalServerError, "Error with contacting host: "+err.Error())
 		}
 
-		fmt.Fprintf(w, "%s", strings.TrimSpace(string(resp)))
-		return
+		return c.JSON(http.StatusOK, strings.TrimSpace(string(resp)))
 	}
 
 	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
@@ -122,9 +102,7 @@ func sendCommand(c echo.Context) error {
 	default:
 		fmt.Fprintf(w, "%s", strings.TrimSpace(string(response)))
 		return
-
 	}
-
 }
 
 func getProjectInfo(req request, conn *telnet.Conn) (string, error) {
@@ -231,57 +209,6 @@ func sendCommandWithConfirm(command string, ipAddress string, port string) error
 	return nil
 }
 
-func getIPTable(response string) (IPTable, error) {
-	// Parse the response to build the IP Table.
-
-	if strings.Contains(response, "IP Table:") { //remove the first pieces so all we have
-		//is the actual table.
-		response = strings.Split(response, "IP Table:")[1]
-	}
-	response = strings.TrimSpace(response)
-
-	lines := strings.Split(response, "\n") //get each line. The first is the header, each subsequent line is an entry in the table
-
-	fmt.Printf("ResponseString:\n %s\n", response)
-
-	fmt.Printf("Length: %v\n", len(lines))
-
-	var toReturn IPTable
-
-	for i := 1; i < len(lines); i++ { //start at one so we skip the headers.
-		entries := strings.Fields(lines[i]) //psplit on whitespace
-
-		fmt.Printf("Fields: %+v\n", entries)
-
-		var toAdd IPEntry
-
-		if len(entries) == 0 { //skip empty lines
-			continue
-		}
-
-		fmt.Printf("Entries: %+v\n", entries)
-		fmt.Printf("Length Entries: %v \n", len(entries))
-
-		switch len(entries) {
-		case 5: //There are 5 entries, assume DevID isn't there.
-			fmt.Printf("Adding Entry: %v\n", entries)
-			toAdd = IPEntry{CipID: entries[0], Type: entries[1], Status: entries[2], Port: entries[3], IPAddressSitename: entries[4]}
-		case 6: //There are 6 entries, DevID is there.
-			toAdd = IPEntry{CipID: entries[0], Type: entries[1], Status: entries[2], DevID: entries[3], Port: entries[4], IPAddressSitename: entries[5]}
-		default: //We don't recognize this IPtable. If we already have entries, just skip it, otherwise throw a fit.
-			if len(toReturn.Entries) == 0 {
-				return IPTable{}, errors.New("Unrecognized IP Table returned.\n")
-			}
-			continue
-		}
-
-		toReturn.Entries = append(toReturn.Entries, toAdd)
-		fmt.Printf("ToReturn: %+v\n", toReturn)
-	}
-
-	return toReturn, nil
-}
-
 func main() {
 	port := ":8001"
 	e := echo.New()
@@ -289,9 +216,9 @@ func main() {
 
 	e.Get("/health", health.Check)
 
-	e.Post("/sendCommand", sendCommand)
-	e.Post("/sendCommandConfirm", sendCommandConfirm)
-	e.Post("/sendCommand/getPrompt", getPromptHandler)
+	e.Post("/sendCommand", controllers.sendCommand)
+	e.Post("/sendCommandConfirm", controllers.sendCommandConfirm)
+	e.Post("/sendCommand/getPrompt", controllers.getPromptHandler)
 
 	fmt.Printf("The Telnet Microservice is listening on %s\n", port)
 	e.Run(fasthttp.New(port))
