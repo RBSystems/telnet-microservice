@@ -2,90 +2,63 @@ package helpers
 
 import (
 	"errors"
-	"fmt"
+	"net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo"
 	"github.com/ziutek/telnet"
 )
 
-func SendCommand(c echo.Context) (string, error) {
-	var conn *telnet.Conn
+func SendCommand(c echo.Context) (error, error) {
+	var connection *telnet.Conn
 
 	req := Request{}
 	c.Bind(&req)
 
-	fmt.Printf("%+v\n", req)
-
-	if len(req.Port) < 1 {
-		req.Port = "23"
-	}
-
-	conn, err := telnet.Dial("tcp", req.Address+":"+req.Port)
+	req, err := CheckRequest(req)
 	if err != nil {
-		return "", errors.New("Error contacting host: " + err.Error())
+		return nil, err
 	}
 
-	defer conn.Close()
-	conn.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
-
-	// Cop-out way to deal with getting the version of the touchpanels--split out xmodem into its own endpoint?
-	// TODO: Figure out a better way to handle this
-	if strings.EqualFold(req.Command, "xget ~.LocalInfo.vtpage") {
-		resp, err := GetProjectInfo(req, conn)
-		if err != nil {
-			return "", errors.New("Error contacting host: " + err.Error())
-		}
-
-		return strings.TrimSpace(string(resp)), nil
-	}
-
-	conn.SetReadDeadline(time.Now().Add(45 * time.Second))
-
-	if req.Prompt == "" {
-		p, err := GetPrompt(req.Address)
-		if err != nil {
-			return "", errors.New("Error contacting host: " + err.Error())
-		}
-
-		req.Prompt = p
-	}
-
-	_, err = conn.Write([]byte(req.Command + "\n\n")) // Send a second newline so we get the prompt
+	connection, err = telnet.Dial("tcp", req.Address+":"+req.Port)
 	if err != nil {
-		return "", errors.New("Error contacting host: " + err.Error())
-
+		return nil, errors.New("Error contacting host: " + err.Error())
 	}
 
-	err = conn.SkipUntil(req.Prompt) // Skip to the first prompt delimiter
+	defer connection.Close()
+	connection.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
+
+	_, err = connection.Write([]byte(req.Command + "\n"))
 	if err != nil {
-		return "", errors.New("Error contacting host: " + err.Error())
+		return nil, err
 	}
-
-	response, err := conn.ReadUntil(req.Prompt) // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
-	if err != nil {
-		return "", errors.New("Error contacting host: " + err.Error())
-	}
-
-	response = response[:len(response)-len(req.Prompt)] // Ghetto trim the prompt off the response
-	response = response[len(req.Command):]
 
 	switch req.Command {
-	case "iptable":
-		ipTable, err := GetIPTable(string(response))
+	case "xget ~.LocalInfo.vtpage":
+		resp, err := GetProjectInfo(req, connection)
 		if err != nil {
-			return "", errors.New("Error: " + err.Error())
+			return nil, errors.New("Error contacting host: " + err.Error())
 		}
 
-		fmt.Printf("STUFF: %+v\n", ipTable)
+		return c.JSON(http.StatusOK, strings.TrimSpace(string(resp))), nil
+	case "iptable":
+		ipTable, err := GetIPTable(req.Prompt)
+		if err != nil {
+			return nil, errors.New("Error: " + err.Error())
+		}
 
-		return "", nil
-
-		// return string(ipTable), nil
+		return c.JSON(http.StatusOK, ipTable), nil
 	default:
-		return strings.TrimSpace(string(response)), nil
-	}
+		connection.SkipUntil(req.Prompt)
+		output, err := connection.ReadUntil(req.Prompt)
+		if err != nil {
+			return nil, err
+		}
 
-	return "", nil
+		output = output[:len(output)-len(req.Prompt)]               // Trim the prompt off the output
+		response := strings.Replace(string(output), "\r\n", "", -1) // Remove line returns that are added automatically
+		response = strings.Trim(response, " ")                      // Kill any trailing spaces
+
+		return c.JSON(http.StatusOK, response), nil
+	}
 }
