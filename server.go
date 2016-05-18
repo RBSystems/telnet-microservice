@@ -28,8 +28,10 @@ func main() {
 	e.Get("/prompt/:address", controllers.GetPrompt)
 	e.Get("/project/:address", controllers.GetProjectInfo)
 
+	e.Get("/command", controllers.CommandInfo)
 	e.Post("/command", controllers.Command)
-	e.Post("/command/confirm", controllers.CommandWithConfirm)
+	e.Get("/confirmed", controllers.CommandWithConfirmInfo)
+	e.Post("/confirmed", controllers.CommandWithConfirm)
 
 	fmt.Printf("The Telnet Microservice is listening on %s\n", port)
 	e.Run(fasthttp.New(port))

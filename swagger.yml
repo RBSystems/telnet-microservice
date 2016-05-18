@@ -107,6 +107,13 @@ paths:
       summary: Send a Command
       description: |
         Send a command through the telnet microservice.
+      parameters:
+        - name: body
+          description: Information about the telnet command and connection
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/telnet-request"
       tags:
         - Telnet
       responses:
@@ -122,7 +129,7 @@ paths:
           $ref: "#/responses/503"
         default:
           $ref: "#/responses/default"
-  /command/confirm:
+  /confirmed:
     get:
       summary: Use Microservice
       description: |
@@ -148,6 +155,13 @@ paths:
       summary: Send a Confirmed Command
       description: |
         Send a command followed by a confirming "y" through the telnet microservice.
+      parameters:
+        - name: body
+          description: Information about the telnet command and connection
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/telnet-request"
       tags:
         - Telnet
       responses:
@@ -183,38 +197,24 @@ definitions:
       message:
         type: string
         description: A human-readable message about what just happened
-  file-request:
+  telnet-request:
     type: object
     required:
-      - "FileLocation"
-      - "DestinationAddress"
-      - "DestinationDirectory"
-      - "CallbackAddress"
+      - "Address"
+      - "Command"
     properties:
-      FileLocation:
+      Address:
         type: string
-        description: The location of the file to be transferred
-      DestinationAddress:
+        description: The address of the machine on the receiving end of the telnet connection
+      Port:
         type: string
-        description: The address of the machine on the receiving end of the FTP connection
-      DestinationDirectory:
+        description: The port on the receiving device used for telnet connections
+      Command:
         type: string
-        description: The directory on the receiving device, relative to root, where we will store the transferred file
-      CallbackAddress:
+        description: The command to send via telnet
+      Prompt:
         type: string
-        description: The address to POST to upon FTP completion
-      CallbackIdentifier:
-        type: string
-        description: A value passed to the callback address to identify the process that was completed
-      UsernameFTP:
-        type: string
-        description: The username to use when initiating FTP (defaults to "anonymous")
-      PasswordFTP:
-        type: string
-        description: The password to use when initiating FTP (defaults to "anonymous")
-      Timeout:
-        type: integer
-        description: The amount of time, in seconds, to wait for the destination device to respond to a request to open an FTP connection (defaults to 30)
+        description: The telnet prompt presented by the machine being connected to
   error:
     type: object
     properties:

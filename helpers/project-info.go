@@ -39,8 +39,6 @@ func GetProjectInfo(c echo.Context) (Project, error) {
 		return Project{}, err
 	}
 
-	// fmt.Printf("%s\n", output)
-
 	if strings.Contains(string(output), ".vtpage") {
 		connection.Write([]byte("cd \\romdisk\\user\\display\\\n\n"))
 		connection.SkipUntil(request.Prompt)
