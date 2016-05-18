@@ -9,4 +9,4 @@ echo "Building container"
 docker build -t byuoitav/telnet-microservice .
 
 echo "Starting the new version"
-docker run -d --restart=always --name telnet-microservice -p 8000:8000 byuoitav/telnet-microservice:latest
+docker run -d --restart=always --name telnet-microservice -p 8001:8001 byuoitav/telnet-microservice:latest
