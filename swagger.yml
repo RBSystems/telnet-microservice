@@ -33,13 +33,61 @@ paths:
           $ref: "#/responses/503"
         default:
           $ref: "#/responses/default"
-  /send:
+  /prompt/{address}:
+    get:
+      summary: Get Telnet Prompt
+      description: |
+        Returns a string containing the telnet prompt used by the specified touchpanel.
+      parameters:
+        - $ref: "#/parameters/address"
+      tags:
+        - Telnet
+      responses:
+        200:
+          description: Endpoint information
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /project/{address}:
+    get:
+      summary: Get Touchpanel Project
+      description: |
+        Returns information about the project loaded on the specified touchpanel (this call takes upwards of 20 seconds to return).
+      parameters:
+        - $ref: "#/parameters/address"
+      tags:
+        - Telnet
+      responses:
+        200:
+          description: Endpoint information
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /command:
     get:
       summary: Use Microservice
       description: |
-        Returns information about the /send enpoint.
+        Returns information about the /command enpoint.
       tags:
-        - FTP
+        - Telnet
       responses:
         200:
           description: Endpoint information
@@ -56,18 +104,52 @@ paths:
         default:
           $ref: "#/responses/default"
     post:
-      summary: Send a File
+      summary: Send a Command
       description: |
-        Send a file through the FTP microservice.
-      parameters:
-        - name: body
-          description: Information about the file to be sent over FTP
-          in: body
-          required: true
-          schema:
-            $ref: "#/definitions/file-request"
+        Send a command through the telnet microservice.
       tags:
-        - FTP
+        - Telnet
+      responses:
+        201:
+          description: All went well
+          schema:
+            $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /command/confirm:
+    get:
+      summary: Use Microservice
+      description: |
+        Returns information about the /command/confirm enpoint.
+      tags:
+        - Telnet
+      responses:
+        200:
+          description: Endpoint information
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+    post:
+      summary: Send a Confirmed Command
+      description: |
+        Send a command followed by a confirming "y" through the telnet microservice.
+      tags:
+        - Telnet
       responses:
         201:
           description: All went well
@@ -138,6 +220,13 @@ definitions:
     properties:
       message:
         type: string
+parameters:
+  address:
+    name: address
+    in: path
+    description: Touchpanel address
+    required: true
+    type: string
 responses:
   401:
     description: You are not authorized to make that request
