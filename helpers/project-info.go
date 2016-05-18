@@ -39,20 +39,34 @@ func GetProjectInfo(c echo.Context) (Project, error) {
 		return Project{}, err
 	}
 
+	// fmt.Printf("%s\n", output)
+
 	if strings.Contains(string(output), ".vtpage") {
-		response := strings.Split(string(output), "\n")
+		connection.Write([]byte("cd \\romdisk\\user\\display\\\n\n"))
+		connection.SkipUntil(request.Prompt)
 
-		for i := range response {
-			if strings.Contains(response[i], "LocalInfo.vtpage") {
-				date := strings.Split(strings.TrimSpace(response[i]), " ")
+		connection.Write([]byte("xget ~.LocalInfo.vtpage\n\n")) // Send a second newline so we get the prompt
 
-				project := Project{
-					Date: date[2] + " " + date[3],
-				}
+		connection.SkipUntil("[TPS]", "ERROR")
+		response, err := connection.ReadUntil("[END_INFO]", "Panel", "not")
+		if err != nil {
+			return Project{}, err
+		}
 
-				return project, nil
+		info := strings.Split(strings.TrimSpace(string(response)), "\n")
+		project := Project{}
+
+		for i := range info {
+			if strings.Contains(info[i], "VTZ=") {
+				project.Project = strings.Replace(strings.Replace(info[i], "VTZ=", "", -1), "\r", "", -1)
+			} else if strings.Contains(info[i], "Date=") {
+				project.Date = strings.Replace(strings.Replace(info[i], "Date=", "", -1), "\r", "", -1)
 			}
 		}
+
+		connection.Close()
+
+		return project, nil
 	}
 
 	return Project{}, errors.New("File ~.LocalInfo.vtpage does not exist")
