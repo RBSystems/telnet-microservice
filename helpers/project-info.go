@@ -58,7 +58,7 @@ func GetProjectInfo(c echo.Context) (Project, error) {
 			if strings.Contains(info[i], "VTZ=") {
 				project.Project = strings.Replace(strings.Replace(info[i], "VTZ=", "", -1), "\r", "", -1)
 			} else if strings.Contains(info[i], "Date=") {
-				project.Date = strings.Replace(strings.Replace(info[i], "Date=", "", -1), "\r", "", -1)
+				project.ProjectDate = strings.Replace(strings.Replace(info[i], "Date=", "", -1), "\r", "", -1)
 			}
 		}
 
