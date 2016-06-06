@@ -14,3 +14,4 @@ deployment:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - docker push byuoitav/telnet-microservice:$CIRCLE_SHA1
       - docker push byuoitav/telnet-microservice:latest
+      - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1

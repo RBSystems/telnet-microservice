@@ -1,6 +1,6 @@
 package helpers
 
-// IPTable represents an IPTable returend from a crestron device
+// IPTable represents an IPTable returned from a crestron device
 type IPTable struct {
 	Entries []IPTableEntry `json:"entries"`
 }
