@@ -7,7 +7,7 @@ import (
 	"github.com/byuoitav/telnet-microservice/controllers"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/fasthttp"
+	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 )
 
@@ -34,5 +34,5 @@ func main() {
 	e.Post("/confirmed", controllers.CommandWithConfirm)
 
 	fmt.Printf("The Telnet Microservice is listening on %s\n", port)
-	e.Run(fasthttp.New(port))
+	e.Run(standard.New(port))
 }
