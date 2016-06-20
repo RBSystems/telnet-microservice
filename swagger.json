@@ -1,0 +1,354 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "Crestron Telnet Microservice",
+        "description": "Communicate over telnet to Crestron boxes",
+        "version": "0.1"
+    },
+    "host": "api.byu.edu:443",
+    "basePath": "/byuoitav-av-api/0.4",
+    "schemes": [
+        "https"
+    ],
+    "produces": [
+        "application/json"
+    ],
+    "paths": {
+        "/health": {
+            "get": {
+                "summary": "Check Service Health",
+                "description": "Returns information about the microservice's health.",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A health message",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response"
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/prompt/{address}": {
+            "get": {
+                "summary": "Get Telnet Prompt",
+                "description": "Returns a string containing the telnet prompt used by the specified touchpanel.",
+                "parameters": [{
+                    "$ref": "#/parameters/address"
+                }],
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Endpoint information",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response"
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/project/{address}": {
+            "get": {
+                "summary": "Get Touchpanel Project",
+                "description": "Returns information about the project loaded on the specified touchpanel (this call takes upwards of 20 seconds to return).",
+                "parameters": [{
+                    "$ref": "#/parameters/address"
+                }],
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Endpoint information",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response"
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/command": {
+            "get": {
+                "summary": "Use Microservice",
+                "description": "Returns information about the /command enpoint.",
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Endpoint information",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response"
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Send a Command",
+                "description": "Send a command through the telnet microservice.",
+                "parameters": [{
+                    "name": "body",
+                    "description": "Information about the telnet command and connection",
+                    "in": "body",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/definitions/telnet-request"
+                    }
+                }],
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "All went well",
+                        "schema": {
+                            "$ref": "#/definitions/response"
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        },
+        "/confirmed": {
+            "get": {
+                "summary": "Use Microservice",
+                "description": "Returns information about the /command/confirm enpoint.",
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Endpoint information",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/response"
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            },
+            "post": {
+                "summary": "Send a Confirmed Command",
+                "description": "Send a command followed by a confirming \"y\" through the telnet microservice.",
+                "parameters": [{
+                    "name": "body",
+                    "description": "Information about the telnet command and connection",
+                    "in": "body",
+                    "required": true,
+                    "schema": {
+                        "$ref": "#/definitions/telnet-request"
+                    }
+                }],
+                "tags": [
+                    "Telnet"
+                ],
+                "responses": {
+                    "201": {
+                        "description": "All went well",
+                        "schema": {
+                            "$ref": "#/definitions/response"
+                        }
+                    },
+                    "401": {
+                        "$ref": "#/responses/401"
+                    },
+                    "500": {
+                        "$ref": "#/responses/500"
+                    },
+                    "503": {
+                        "$ref": "#/responses/503"
+                    },
+                    "default": {
+                        "$ref": "#/responses/default"
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "HATEOAS": {
+            "type": "object",
+            "properties": {
+                "rel": {
+                    "type": "string",
+                    "description": "A human-readable name for what the link represents"
+                },
+                "href": {
+                    "type": "string",
+                    "description": "The link to the endpoint"
+                }
+            }
+        },
+        "response": {
+            "type": "object",
+            "properties": {
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/HATEOAS"
+                    }
+                },
+                "message": {
+                    "type": "string",
+                    "description": "A human-readable message about what just happened"
+                }
+            }
+        },
+        "telnet-request": {
+            "type": "object",
+            "required": [
+                "Address",
+                "Command"
+            ],
+            "properties": {
+                "Address": {
+                    "type": "string",
+                    "description": "The address of the machine on the receiving end of the telnet connection"
+                },
+                "Port": {
+                    "type": "string",
+                    "description": "The port on the receiving device used for telnet connections"
+                },
+                "Command": {
+                    "type": "string",
+                    "description": "The command to send via telnet"
+                },
+                "Prompt": {
+                    "type": "string",
+                    "description": "The telnet prompt presented by the machine being connected to"
+                }
+            }
+        },
+        "error": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "parameters": {
+        "address": {
+            "name": "address",
+            "in": "path",
+            "description": "Touchpanel address",
+            "required": true,
+            "type": "string"
+        }
+    },
+    "responses": {
+        "401": {
+            "description": "You are not authorized to make that request",
+            "schema": {
+                "$ref": "#/definitions/error"
+            }
+        },
+        "500": {
+            "description": "There was a problem with the server on our end",
+            "schema": {
+                "$ref": "#/definitions/error"
+            }
+        },
+        "503": {
+            "description": "The server is overloaded, is under maintenance, or is otherwise unavailable",
+            "schema": {
+                "$ref": "#/definitions/error"
+            }
+        },
+        "default": {
+            "description": "Unexpected error",
+            "schema": {
+                "$ref": "#/definitions/error"
+            }
+        }
+    }
+}

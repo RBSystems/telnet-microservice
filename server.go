@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/byuoitav/hateoas"
 	"github.com/byuoitav/telnet-microservice/controllers"
+	"github.com/byuoitav/wso2jwt"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
@@ -12,9 +14,9 @@ import (
 )
 
 func main() {
-	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/telnet-microservice/master/swagger.yml")
+	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/telnet-microservice/master/swagger.json")
 	if err != nil {
-		fmt.Printf("Could not load swagger.yaml file. Error: %s", err.Error())
+		fmt.Printf("Could not load swagger.json file. Error: %s", err.Error())
 		panic(err)
 	}
 
@@ -25,15 +27,15 @@ func main() {
 	router.Get("/", hateoas.RootResponse)
 	router.Get("/health", health.Check)
 
-	router.Get("/prompt/:address", controllers.GetPrompt)
-	router.Get("/project/:address", controllers.GetProjectInfo)
+	router.Get("/prompt/:address", controllers.GetPrompt, wso2jwt.ValidateJWT())
+	router.Get("/project/:address", controllers.GetProjectInfo, wso2jwt.ValidateJWT())
 
-	router.Get("/command", controllers.CommandInfo)
-	router.Post("/command", controllers.Command)
-	router.Get("/confirmed", controllers.CommandWithConfirmInfo)
-	router.Post("/confirmed", controllers.CommandWithConfirm)
+	router.Get("/command", controllers.CommandInfo, wso2jwt.ValidateJWT())
+	router.Post("/command", controllers.Command, wso2jwt.ValidateJWT())
+	router.Get("/confirmed", controllers.CommandWithConfirmInfo, wso2jwt.ValidateJWT())
+	router.Post("/confirmed", controllers.CommandWithConfirm, wso2jwt.ValidateJWT())
 
-	fmt.Printf("The Telnet Microservice is listening on %s\n", port)
+	log.Println("The Telnet Microservice is listening on " + port)
 	server := fasthttp.New(port)
 	server.ReadBufferSize = 1024 * 10 // Needed to interface properly with WSO2
 	router.Run(server)
