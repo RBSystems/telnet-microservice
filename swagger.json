@@ -1,12 +1,12 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "Crestron Telnet Microservice",
-        "description": "Communicate over telnet to Crestron boxes",
+        "title": "Telnet Microservice",
+        "description": "Communicate over telnet",
         "version": "0.1"
     },
     "host": "api.byu.edu:443",
-    "basePath": "/byuoitav-av-api/0.4",
+    "basePath": "/byuoitav-telnet-microservice/0.1",
     "schemes": [
         "https"
     ],
