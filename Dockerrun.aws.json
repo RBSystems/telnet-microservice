@@ -5,7 +5,7 @@
         "Key": ".dockercfg"
     },
     "Image": {
-        "Name": "byuoitav/telnet-microservice:latest",
+        "Name": "byuoitav/telnet-microservice:<TAG>",
         "Update": "true"
     },
     "Ports": [{
