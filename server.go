@@ -23,6 +23,7 @@ func main() {
 	port := ":8001"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
+	router.Use(middleware.CORS())
 
 	router.Get("/", hateoas.RootResponse)
 	router.Get("/health", health.Check)
