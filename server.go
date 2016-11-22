@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/byuoitav/hateoas"
@@ -15,26 +15,27 @@ import (
 func main() {
 	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/telnet-microservice/master/swagger.json")
 	if err != nil {
-		fmt.Printf("Could not load swagger.json file. Error: %s", err.Error())
-		panic(err)
+		log.Fatalln("Could not load Swagger file. Error: " + err.Error())
 	}
 
 	port := ":8001"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
 	router.Use(middleware.CORS())
-	router.Use(echo.WrapMiddleware(wso2jwt.ValidateJWT))
+
+	// Use the `secure` routing group to require authentication
+	secure := router.Group("", echo.WrapMiddleware(wso2jwt.ValidateJWT))
 
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
 
-	router.GET("/prompt/:address", controllers.GetPrompt)
-	router.GET("/project/:address", controllers.GetProjectInfo)
+	secure.GET("/prompt/:address", controllers.GetPrompt)
+	secure.GET("/project/:address", controllers.GetProjectInfo)
 
-	router.GET("/command", controllers.CommandInfo)
-	router.POST("/command", controllers.Command)
-	router.GET("/confirmed", controllers.CommandWithConfirmInfo)
-	router.POST("/confirmed", controllers.CommandWithConfirm)
+	secure.GET("/command", controllers.CommandInfo)
+	secure.POST("/command", controllers.Command)
+	secure.GET("/confirmed", controllers.CommandWithConfirmInfo)
+	secure.POST("/confirmed", controllers.CommandWithConfirm)
 
 	server := http.Server{
 		Addr:           port,
