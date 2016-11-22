@@ -52,14 +52,6 @@
 			"notests": true
 		},
 		{
-			"importpath": "github.com/byuoitav/wso2jwt",
-			"repository": "https://github.com/byuoitav/wso2jwt",
-			"vcs": "git",
-			"revision": "490783211a4109ed29c9e8316113601836b45266",
-			"branch": "master",
-			"notests": true
-		},
-		{
 			"importpath": "github.com/daaku/go.zipexe",
 			"repository": "https://github.com/daaku/go.zipexe",
 			"vcs": "git",

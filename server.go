@@ -23,17 +23,18 @@ func main() {
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
 	router.Use(middleware.CORS())
+	router.Use(echo.WrapMiddleware(wso2jwt.ValidateJWT))
 
-	router.GET("/", hateoas.RootResponse)
-	router.GET("/health", health.Check)
+	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
+	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
 
-	router.GET("/prompt/:address", controllers.GETPrompt, wso2jwt.ValidateJWT())
-	router.GET("/project/:address", controllers.GETProjectInfo, wso2jwt.ValidateJWT())
+	router.GET("/prompt/:address", controllers.GetPrompt)
+	router.GET("/project/:address", controllers.GetProjectInfo)
 
-	router.GET("/command", controllers.CommandInfo, wso2jwt.ValidateJWT())
-	router.POST("/command", controllers.Command, wso2jwt.ValidateJWT())
-	router.GET("/confirmed", controllers.CommandWithConfirmInfo, wso2jwt.ValidateJWT())
-	router.POST("/confirmed", controllers.CommandWithConfirm, wso2jwt.ValidateJWT())
+	router.GET("/command", controllers.CommandInfo)
+	router.POST("/command", controllers.Command)
+	router.GET("/confirmed", controllers.CommandWithConfirmInfo)
+	router.POST("/confirmed", controllers.CommandWithConfirm)
 
 	server := http.Server{
 		Addr:           port,
