@@ -23,7 +23,7 @@
 			"vcs": "git",
 			"revision": "ba14da1f827188454a4591717fff29999010887f",
 			"branch": "master",
-			"path": "binutil",
+			"path": "/binutil",
 			"notests": true
 		},
 		{
@@ -32,7 +32,7 @@
 			"vcs": "git",
 			"revision": "ba14da1f827188454a4591717fff29999010887f",
 			"branch": "master",
-			"path": "/coff",
+			"path": "coff",
 			"notests": true
 		},
 		{
@@ -148,7 +148,7 @@
 			"vcs": "git",
 			"revision": "9a43ff0d261e0e65594422e9eee08cf301aabbe7",
 			"branch": "master",
-			"path": "/bytes",
+			"path": "bytes",
 			"notests": true
 		},
 		{
@@ -166,7 +166,7 @@
 			"vcs": "git",
 			"revision": "9a43ff0d261e0e65594422e9eee08cf301aabbe7",
 			"branch": "master",
-			"path": "log",
+			"path": "/log",
 			"notests": true
 		},
 		{
@@ -190,7 +190,7 @@
 			"importpath": "github.com/mattn/go-isatty",
 			"repository": "https://github.com/mattn/go-isatty",
 			"vcs": "git",
-			"revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",
+			"revision": "30a891c33c7cde7b02a981314b4228ec99380cca",
 			"branch": "master",
 			"notests": true
 		},
